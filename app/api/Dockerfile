@@ -1,4 +1,4 @@
-FROM php:8.4-apache
+FROM dunglas/frankenphp
 
 ARG GITHUB_REPO
 ARG GITHUB_TOKEN

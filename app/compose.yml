@@ -1,0 +1,81 @@
+services:
+  db:
+    image: mysql:8.0
+    container_name: featzy_db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+    volumes:
+      - featzy_data:/var/lib/mysql
+    networks:
+      - featzy_db
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "mysqladmin",
+          "ping",
+          "-h",
+          "localhost",
+          "-u",
+          "root",
+          "-p${DB_ROOT_PASSWORD}",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: ./api
+      args:
+        GITHUB_REPO: ${GITHUB_REPO}
+        GITHUB_TOKEN: ${GITHUB_TOKEN}
+        APP_ENV: production
+    container_name: featzy_api
+    restart: unless-stopped
+    environment:
+      APP_ENV: production
+      APP_KEY: ${APP_KEY}
+      APP_URL: ${APP_URL}
+      DB_CONNECTION: mysql
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_DATABASE: ${DB_DATABASE}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - featzy_api
+      - featzy_db
+
+  front:
+    build:
+      context: ./front
+      args:
+        GITHUB_REPO: ${GITHUB_REPO}
+        GITHUB_TOKEN: ${GITHUB_TOKEN}
+        VITE_API_URL: /api
+    container_name: featzy_front
+    restart: unless-stopped
+    depends_on:
+      - api
+    networks:
+      - featzy_front
+
+networks:
+  featzy_api:
+    external: true
+  featzy_front:
+    external: true
+  featzy_db:
+    driver: bridge
+    name: featzy_db
+
+volumes:
+  featzy_data:

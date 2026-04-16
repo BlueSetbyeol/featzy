@@ -1,67 +1,35 @@
 services:
-  db:
-    image: mysql:8.0
-    container_name: featzy_db
+  npm:
+    container_name: npm
+    image: "jc21/nginx-proxy-manager:latest"
     restart: unless-stopped
-    environment:
-      MYSQL_DATABASE: ${DB_DATABASE}
-      MYSQL_USER: ${DB_USERNAME}
-      MYSQL_PASSWORD: ${DB_PASSWORD}
-      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
-    volumes:
-      - featzy_data:/var/lib/mysql
-    networks:
-      - featzy_network
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
-  api:
-    build:
-      context: ./api
-      args:
-        GITHUB_REPO: ${GITHUB_REPO}
-        GITHUB_TOKEN: ${GITHUB_TOKEN}
-        APP_ENV: production
-    container_name: featzy_api
-    restart: unless-stopped
-    environment:
-      APP_ENV: production
-      APP_KEY: ${APP_KEY}
-      APP_URL: ${APP_URL}
-      DB_CONNECTION: mysql
-      DB_HOST: db
-      DB_PORT: 3306
-      DB_DATABASE: ${DB_DATABASE}
-      DB_USERNAME: ${DB_USERNAME}
-      DB_PASSWORD: ${DB_PASSWORD}
-    depends_on:
-      db:
-        condition: service_healthy
-    networks:
-      - featzy_network
-
-  front:
-    build:
-      context: ./front
-      args:
-        GITHUB_REPO: ${GITHUB_REPO}
-        GITHUB_TOKEN: ${GITHUB_TOKEN}
-        VITE_API_URL: /api
-    container_name: featzy_front
-    restart: unless-stopped
     ports:
-      - "80:80"
-    depends_on:
-      - api
-    networks:
-      - featzy_network
+      # These ports are in format <host-port>:<container-port>
+      - "80:80" # Public HTTP Port
+      - "443:443" # Public HTTPS Port
+      - "81:81" # Admin Web Port
+      # Add any other Stream port you want to expose
+      # - '21:21' # FTP
+
+    environment:
+      TZ: "Europe/Paris"
+
+      # Uncomment this if you want to change the location of
+      # the SQLite DB file within the container
+      # DB_SQLITE_FILE: "/data/database.sqlite"
+
+      # Uncomment this if IPv6 is not enabled on your host
+      # DISABLE_IPV6: 'true'
+
+    volumes:
+      - ./data:/data
+      - ./letsencrypt:/etc/letsencrypt
 
 networks:
-  featzy_network:
+  featzy_api:
     driver: bridge
-
-volumes:
-  featzy_data:
+    name: featzy_api
+  featzy_front:
+    driver: bridge
+    name: featzy_front
